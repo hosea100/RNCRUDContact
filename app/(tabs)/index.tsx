@@ -1,3 +1,4 @@
+import React, { useEffect, useState, useMemo } from 'react';
 import { 
   Image, 
   StyleSheet,
@@ -6,45 +7,45 @@ import {
   Text, 
   ScrollView, 
   SafeAreaView, 
-  TouchableOpacity,
-  RefreshControl
+  TouchableOpacity, 
+  RefreshControl,
+  Button
 } from 'react-native';
-import { useEffect, useState, useMemo } from 'react';
 import { Feather } from '@expo/vector-icons';
-
+import { useNavigation } from 'expo-router';
 import axiosInstance from '@/utils/axiosInstance';
-
 import { RootStackParamList } from '@/types/types';
 
 export default function HomeScreen() {
-  const [contactData, setContactData] = useState<RootStackParamList['ContactType'][]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [refreshing, setRefreshing] = useState<boolean>(false)
-  const [error, setError] = useState<RootStackParamList['ErrorType'] | null>(null)
+  const navigation = useNavigation();
 
+  const [contactData, setContactData] = useState<RootStackParamList['ContactDetail'][]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<RootStackParamList['ErrorType'] | null>(null);
 
-  const fetchData = () => { // Extracted fetch logic into a function
+  const fetchData = () => {
     axiosInstance.getRequest('https://contact.herokuapp.com/contact', {
       headers: {}
     }).then(data => {
       setContactData(data?.data);
-      setLoading(false)
-      setRefreshing(false)
+      setLoading(false);
+      setRefreshing(false);
     }).catch(err => {
-      setError(err)
-      setLoading(false)
-      setRefreshing(false)
+      setError(err);
+      setLoading(false);
+      setRefreshing(false);
     });
   };
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    fetchData();
+  }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchData()
-  }
+    fetchData();
+  };
 
   const sections = useMemo(() => {
     if (!Array.isArray(contactData)) {
@@ -57,7 +58,7 @@ export default function HomeScreen() {
         ...acc,
         [firstNameLetter]: [...(acc[firstNameLetter] || []), item],
       };
-    }, {} as Record<string, RootStackParamList['ContactType'][]>);
+    }, {} as Record<string, RootStackParamList['ContactDetail'][]>);
 
     return Object.entries(sectionsMap)
       .map(([letter, items]) => ({
@@ -89,49 +90,50 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollView}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }  
+        }
       >
         <View style={styles.header}>
           <Text style={styles.title}>Contacts</Text>
+          <Button
+            title="Add Contact"
+            onPress={() => navigation.navigate('contact-detail', { mode: 'add' })}
+          />
         </View>
         {sections.map(({ letter, items }) => (
           <View style={styles.section} key={letter}>
             <Text style={styles.sectionTitle}>{letter}</Text>
             <View style={styles.sectionItems}>
-              {items.map(({ photo, firstName, lastName, age }, index) => {
-                return (
-                  <View key={index} style={styles.cardWrapper}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        // handle onPress
-                      }}>
-                      <View style={styles.card}>
-                        {photo ? (
-                          <Image
-                            alt=""
-                            resizeMode="cover"
-                            source={{ uri: photo }}
-                            style={styles.cardImg} />
-                        ) : (
-                          <View style={[styles.cardImg, styles.cardAvatar]}>
-                            <Text style={styles.cardAvatarText}>{firstName}</Text>
-                          </View>
-                        )}
-                        <View style={styles.cardBody}>
-                          <Text style={styles.cardTitle}>{firstName} {lastName}</Text>
-                          <Text style={styles.cardPhone}>{age}</Text>
+              {items.map(({ photo, firstName, lastName, age, id }) => (
+                <View key={id} style={styles.cardWrapper}>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('contact-detail', { id, firstName, lastName, age, photo, mode: 'edit' })}
+                  >
+                    <View style={styles.card}>
+                      {photo ? (
+                        <Image
+                          alt=""
+                          resizeMode="cover"
+                          source={{ uri: photo }}
+                          style={styles.cardImg} />
+                      ) : (
+                        <View style={[styles.cardImg, styles.cardAvatar]}>
+                          <Text style={styles.cardAvatarText}>{firstName}</Text>
                         </View>
-                        <View style={styles.cardAction}>
-                          <Feather
-                            color="#9ca3af"
-                            name="chevron-right"
-                            size={22} />
-                        </View>
+                      )}
+                      <View style={styles.cardBody}>
+                        <Text style={styles.cardTitle}>{firstName} {lastName}</Text>
+                        <Text style={styles.cardPhone}>{age}</Text>
                       </View>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
+                      <View style={styles.cardAction}>
+                        <Feather
+                          color="#9ca3af"
+                          name="chevron-right"
+                          size={22} />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
           </View>
         ))}
@@ -161,6 +163,9 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
   title: {
     fontSize: 32,
@@ -168,7 +173,6 @@ const styles = StyleSheet.create({
     color: '#1d1d1d',
     marginBottom: 12,
   },
-  /** Section */
   section: {
     marginTop: 12,
     paddingLeft: 24,
@@ -181,7 +185,6 @@ const styles = StyleSheet.create({
   sectionItems: {
     marginTop: 8,
   },
-  /** Card */
   card: {
     paddingVertical: 14,
     flexDirection: 'row',
@@ -228,6 +231,3 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
 });
-
-
-
