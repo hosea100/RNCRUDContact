@@ -13,24 +13,37 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hoseayoarana.RNCRUDContact",
+      "icon": "./assets/icons/ios-icon.png",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "versionCode": 1,
+        "foregroundImage": "./assets/icons/icons8-crud-96(-xxhdpi).png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.hoseayoarana.RNCRUDContact"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/icons/icons8-crud-96(-xxhdpi).png"
     },
     "plugins": [
       "expo-router"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "0998665a-33fb-446c-a789-62bb71b3a358"
+      }
     }
   }
 }
