@@ -57,7 +57,6 @@ export default function ContactDetailScreen() {
       }
     } catch (error) {
       Alert.alert('Error', 'An error occurred while deleting the contact.');
-      console.log(id)
     }
   };
 
