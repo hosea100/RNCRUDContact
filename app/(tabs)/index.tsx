@@ -1,70 +1,217 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { 
+  Image, 
+  StyleSheet,
+  View, 
+  ActivityIndicator, 
+  Text, 
+  ScrollView, 
+  SafeAreaView, 
+  TouchableOpacity 
+} from 'react-native';
+import { useEffect, useState, useMemo } from 'react';
+import { Feather } from '@expo/vector-icons';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import axiosInstance from '@/utils/axiosInstance';
+
+type ErrorType = {
+  message: string
+}
+
+type ContactType = {
+  firstName: string
+  lastName: string
+  age: string
+  photo: string
+  id: string
+}
 
 export default function HomeScreen() {
+  const [contactData, setContactData] = useState<ContactType[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<ErrorType | null>(null)
+
+  useEffect(() => {
+    axiosInstance.getRequest('https://contact.herokuapp.com/contact',
+    {
+      headers: {}
+    }).then(data => {
+      setContactData(data?.data)
+      setLoading(false)
+    }).catch(err => {
+      setError(err)
+      setLoading(false)
+    })
+  }, [contactData])
+
+  const sections = useMemo(() => {
+    if (!Array.isArray(contactData)) {
+      return [];
+    }
+
+    const sectionsMap = contactData.reduce((acc, item) => {
+      const firstNameLetter = item.firstName[0].toUpperCase();
+      return {
+        ...acc,
+        [firstNameLetter]: [...(acc[firstNameLetter] || []), item],
+      };
+    }, {} as Record<string, ContactType[]>);
+
+    return Object.entries(sectionsMap)
+      .map(([letter, items]) => ({
+        letter,
+        items,
+      }))
+      .sort((a, b) => a.letter.localeCompare(b.letter));
+  }, [contactData]);
+  console.log(sections.map((item) => item.items))
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centered}>
+        <Text>Error: {error?.message}</Text>
+      </View>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <SafeAreaView style={{ backgroundColor: '#f2f2f2' }}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Contacts</Text>
+        </View>
+        {sections.map(({ letter, items }) => (
+          <View style={styles.section} key={letter}>
+            <Text style={styles.sectionTitle}>{letter}</Text>
+            <View style={styles.sectionItems}>
+              {items.map(({ photo, firstName, lastName, age }, index) => {
+                return (
+                  <View key={index} style={styles.cardWrapper}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        // handle onPress
+                      }}>
+                      <View style={styles.card}>
+                        {photo ? (
+                          <Image
+                            alt=""
+                            resizeMode="cover"
+                            source={{ uri: photo }}
+                            style={styles.cardImg} />
+                        ) : (
+                          <View style={[styles.cardImg, styles.cardAvatar]}>
+                            <Text style={styles.cardAvatarText}>{firstName}</Text>
+                          </View>
+                        )}
+                        <View style={styles.cardBody}>
+                          <Text style={styles.cardTitle}>{firstName} {lastName}</Text>
+                          <Text style={styles.cardPhone}>{age}</Text>
+                        </View>
+                        <View style={styles.cardAction}>
+                          <Feather
+                            color="#9ca3af"
+                            name="chevron-right"
+                            size={22} />
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    paddingVertical: 24,
+    paddingHorizontal: 0,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
+    paddingHorizontal: 24,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#1d1d1d',
+    marginBottom: 12,
+  },
+  /** Section */
+  section: {
+    marginTop: 12,
+    paddingLeft: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000',
+  },
+  sectionItems: {
+    marginTop: 8,
+  },
+  /** Card */
+  card: {
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'flex-start',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  cardWrapper: {
+    borderBottomWidth: 1,
+    borderColor: '#d6d6d6',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  cardImg: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+  },
+  cardAvatar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#9ca1ac',
+  },
+  cardAvatarText: {
+    fontSize: 19,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  cardBody: {
+    marginRight: 'auto',
+    marginLeft: 12,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+  },
+  cardPhone: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '500',
+    color: '#616d79',
+    marginTop: 3,
+  },
+  cardAction: {
+    paddingRight: 16,
   },
 });
+
+
+
