@@ -63,7 +63,6 @@ export default function HomeScreen() {
       }))
       .sort((a, b) => a.letter.localeCompare(b.letter));
   }, [contactData]);
-  console.log(sections.map((item) => item.items))
 
   if (loading) {
     return (
