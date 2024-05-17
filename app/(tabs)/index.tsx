@@ -6,42 +6,45 @@ import {
   Text, 
   ScrollView, 
   SafeAreaView, 
-  TouchableOpacity 
+  TouchableOpacity,
+  RefreshControl
 } from 'react-native';
 import { useEffect, useState, useMemo } from 'react';
 import { Feather } from '@expo/vector-icons';
 
 import axiosInstance from '@/utils/axiosInstance';
 
-type ErrorType = {
-  message: string
-}
-
-type ContactType = {
-  firstName: string
-  lastName: string
-  age: string
-  photo: string
-  id: string
-}
+import { RootStackParamList } from '@/types/types';
 
 export default function HomeScreen() {
-  const [contactData, setContactData] = useState<ContactType[]>([])
+  const [contactData, setContactData] = useState<RootStackParamList['ContactType'][]>([])
   const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<ErrorType | null>(null)
+  const [refreshing, setRefreshing] = useState<boolean>(false)
+  const [error, setError] = useState<RootStackParamList['ErrorType'] | null>(null)
 
-  useEffect(() => {
-    axiosInstance.getRequest('https://contact.herokuapp.com/contact',
-    {
+
+  const fetchData = () => { // Extracted fetch logic into a function
+    axiosInstance.getRequest('https://contact.herokuapp.com/contact', {
       headers: {}
     }).then(data => {
-      setContactData(data?.data)
+      setContactData(data?.data);
       setLoading(false)
+      setRefreshing(false)
     }).catch(err => {
       setError(err)
       setLoading(false)
-    })
-  }, [contactData])
+      setRefreshing(false)
+    });
+  };
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData()
+  }
 
   const sections = useMemo(() => {
     if (!Array.isArray(contactData)) {
@@ -54,7 +57,7 @@ export default function HomeScreen() {
         ...acc,
         [firstNameLetter]: [...(acc[firstNameLetter] || []), item],
       };
-    }, {} as Record<string, ContactType[]>);
+    }, {} as Record<string, RootStackParamList['ContactType'][]>);
 
     return Object.entries(sectionsMap)
       .map(([letter, items]) => ({
@@ -81,8 +84,13 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={{ backgroundColor: '#f2f2f2' }}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollView}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }  
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Contacts</Text>
         </View>
@@ -133,6 +141,15 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f2f2f2',
+  },
+  scrollView: {
+    flexGrow: 1,
+    paddingVertical: 24,
+    paddingHorizontal: 0,
+  },
   container: {
     paddingVertical: 24,
     paddingHorizontal: 0,
