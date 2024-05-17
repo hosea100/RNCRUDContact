@@ -39,9 +39,25 @@ export default function ContactDetailScreen() {
       }
 
       Alert.alert('Success', `Contact ${mode === 'add' ? 'added' : 'updated'} successfully!`);
-      router.back();
+      router.back(); // Navigate back to the home screen
     } catch (error) {
       Alert.alert('Error', 'An error occurred while saving the contact.');
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      if (id) {
+        const response = await axiosInstance.deleteRequest(`https://contact.herokuapp.com/contact/${id}`);
+        if (response.error) {
+          throw new Error(response.error.message);
+        }
+        Alert.alert('Success', 'Contact deleted successfully!');
+        router.back();
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred while deleting the contact.');
+      console.log(id)
     }
   };
 
@@ -73,6 +89,10 @@ export default function ContactDetailScreen() {
       </View>
 
       <Button title={mode === 'add' ? 'Add Contact' : 'Update Contact'} onPress={handleSubmit} />
+
+      {mode === 'edit' && (
+        <Button title="Delete Contact" onPress={handleDelete} color="red" />
+      )}
     </ScrollView>
   );
 }
