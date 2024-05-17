@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { 
   Image, 
   StyleSheet,
@@ -13,52 +13,35 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
-import axiosInstance from '@/utils/axiosInstance';
-import { RootStackParamList } from '@/types/types';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState, AppDispatch } from '@/app/store';
+import { fetchContacts } from '../features/contact/contactSlice';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
-
-  const [contactData, setContactData] = useState<RootStackParamList['ContactDetail'][]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<RootStackParamList['ErrorType'] | null>(null);
-
-  const fetchData = () => {
-    axiosInstance.getRequest('https://contact.herokuapp.com/contact', {
-      headers: {}
-    }).then(data => {
-      setContactData(data?.data);
-      setLoading(false);
-      setRefreshing(false);
-    }).catch(err => {
-      setError(err);
-      setLoading(false);
-      setRefreshing(false);
-    });
-  };
+  const dispatch = useDispatch<AppDispatch>();
+  const { contacts, loading, error } = useSelector((state: RootState) => state.contacts);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    dispatch(fetchContacts());
+  }, [dispatch]);
 
   const onRefresh = () => {
-    setRefreshing(true);
-    fetchData();
+    dispatch(fetchContacts());
   };
 
   const sections = useMemo(() => {
-    if (!Array.isArray(contactData)) {
+    if (!Array.isArray(contacts)) {
       return [];
     }
 
-    const sectionsMap = contactData.reduce((acc, item) => {
+    const sectionsMap = contacts.reduce((acc, item) => {
       const firstNameLetter = item.firstName[0].toUpperCase();
       return {
         ...acc,
         [firstNameLetter]: [...(acc[firstNameLetter] || []), item],
       };
-    }, {} as Record<string, RootStackParamList['ContactDetail'][]>);
+    }, {} as Record<string, typeof contacts[0][]>);
 
     return Object.entries(sectionsMap)
       .map(([letter, items]) => ({
@@ -66,7 +49,7 @@ export default function HomeScreen() {
         items,
       }))
       .sort((a, b) => a.letter.localeCompare(b.letter));
-  }, [contactData]);
+  }, [contacts]);
 
   if (loading) {
     return (
@@ -79,7 +62,7 @@ export default function HomeScreen() {
   if (error) {
     return (
       <View style={styles.centered}>
-        <Text>Error: {error?.message}</Text>
+        <Text>Error: {error}</Text>
       </View>
     );
   }
@@ -89,7 +72,7 @@ export default function HomeScreen() {
       <ScrollView 
         contentContainerStyle={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={loading} onRefresh={onRefresh} />
         }
       >
         <View style={styles.header}>

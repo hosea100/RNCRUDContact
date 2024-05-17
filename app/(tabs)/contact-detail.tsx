@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, Image, Button, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import axiosInstance from '@/utils/axiosInstance';
-import { RootStackParamList } from '@/types/types';
+import { useDispatch } from 'react-redux';
+import { addContact, updateContact, deleteContact } from '../features/contact/contactSlice';
+import { AppDispatch } from '@/app/store';
 
 type ContactDetailParams = {
   id?: string;
@@ -17,6 +18,8 @@ export default function ContactDetailScreen() {
   const router = useRouter();
   const { id, firstName: initialFirstName, lastName: initialLastName, age: initialAge, photo: initialPhoto, mode } = useLocalSearchParams<ContactDetailParams>();
 
+  const dispatch = useDispatch<AppDispatch>();
+
   const [firstName, setFirstName] = useState(initialFirstName || '');
   const [lastName, setLastName] = useState(initialLastName || '');
   const [age, setAge] = useState(initialAge || '');
@@ -30,16 +33,16 @@ export default function ContactDetailScreen() {
 
   const handleSubmit = async () => {
     try {
-      const contactData = { firstName, lastName, age, photo };
+      const contactData = { id, firstName, lastName, age, photo };
 
       if (mode === 'add') {
-        await axiosInstance.postRequest('https://contact.herokuapp.com/contact', contactData);
+        await dispatch(addContact(contactData)).unwrap();
       } else if (mode === 'edit' && id) {
-        await axiosInstance.putRequest(`https://contact.herokuapp.com/contact/${id}`, contactData);
+        await dispatch(updateContact(contactData)).unwrap();
       }
 
       Alert.alert('Success', `Contact ${mode === 'add' ? 'added' : 'updated'} successfully!`);
-      router.back(); // Navigate back to the home screen
+      router.back();
     } catch (error) {
       Alert.alert('Error', 'An error occurred while saving the contact.');
     }
@@ -48,16 +51,12 @@ export default function ContactDetailScreen() {
   const handleDelete = async () => {
     try {
       if (id) {
-        const response = await axiosInstance.deleteRequest(`https://contact.herokuapp.com/contact/${id}`);
-        if (response.error) {
-          throw new Error(response.error.message);
-        }
+        await dispatch(deleteContact(id)).unwrap();
         Alert.alert('Success', 'Contact deleted successfully!');
         router.back();
       }
     } catch (error) {
       Alert.alert('Error', 'An error occurred while deleting the contact.');
-      console.log(id)
     }
   };
 
