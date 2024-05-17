@@ -18,7 +18,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Contacts',
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color }) => (
             <TabBarIcon name='user' color={color} />
           ),
         }}
@@ -27,7 +27,7 @@ export default function TabLayout() {
         name="explore"
         options={{
           title: 'Explore',
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ color }) => (
             <TabBarIcon name='codepen' color={color} />
           ),
         }}
